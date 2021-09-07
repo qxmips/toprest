@@ -1,16 +1,15 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.16-alpine 
-WORKDIR /app
+FROM golang:1.16-alpine as builder
+COPY . /build/
+WORKDIR /build
+RUN env GOOS=linux GARCH=amd64 CGO_ENABLED=0 \
+    go build -ldflags "-s -w" -o app main.go
 
-COPY go.mod ./
-COPY go.sum ./
-RUN go mod download
+FROM alpine:3.14.2
+RUN apk add --update --no-cache ca-certificates curl
 
-COPY *.go ./
+COPY --from=builder /build/app /app
 
-RUN go build -o /toprest
 
-EXPOSE 8080
-
-CMD [ "/toprest" ]
+CMD ["/app"]
